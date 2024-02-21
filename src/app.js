@@ -1,7 +1,7 @@
 const express=require("express")
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
- 
+const {errorHandler}=require("./middlewares/error.middleware")
 const app=express();
 
 app.use(cors({
@@ -18,7 +18,7 @@ app.use(cookieParser())
  const userRouter=require("./routes/user.route");
  
 app.use("/api/v1/user", userRouter)
- 
+ app.use(errorHandler); 
 
 module.exports={app};
  

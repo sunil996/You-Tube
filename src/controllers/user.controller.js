@@ -1,10 +1,18 @@
 const {asyncHandler}=require("../utils/asyncHandler")
 const {ApiResponse}=require("../utils/apiResponse")
-
-const registerUser=asyncHandler(async(req,res)=>{
-      new ApiResponse(200,null,"ok" );
-     //res.status(200).json(  new ApiResponse(200,null,"ok") );
+const {ApiError}=require("../utils/apiError"
+)
+const registerUser=asyncHandler(async(req,res,next)=>{
+      
+     const {fullName,email,username,password}=req.body;
+     if([fullName,email,username,password].some((field)=> 
+         field?.trim()===""
+      ))
+     {
+        return next(new ApiError(400,"Provide values for all fields."))
      
-    console.log("hifodfisdj");
+     }
+    
+     
 })
 module.exports={registerUser}
