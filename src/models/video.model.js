@@ -37,7 +37,6 @@ const videoSchema = new Schema(
             type: Schema.Types.ObjectId,
             ref: "User"
         }
-
     }, 
     {
         timestamps: true
@@ -45,8 +44,5 @@ const videoSchema = new Schema(
 )
 
 videoSchema.plugin(mongooseAggregatePaginate)
-
- const Video = mongoose.model("Video", videoSchema)
- module.exports={
-    Video
- }
+const Video = mongoose.model("Video", videoSchema)
+module.exports={Video}
