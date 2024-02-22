@@ -18,7 +18,7 @@ app.use(cookieParser())
  const userRouter=require("./routes/user.route");
  
 app.use("/api/v1/user", userRouter)
- app.use(errorHandler); 
+app.use(errorHandler); 
 
 module.exports={app};
  

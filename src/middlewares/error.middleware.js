@@ -2,11 +2,19 @@ const { ApiError } = require("../utils/apiError");
 
 const errorHandler = (err, req, res, next) => {
 
+  if (err.name === 'TokenExpiredError') {
+     
+    return res.status(401).json({
+      statusCode:401,
+      success: false, 
+      message:"Token has Expired"
+    });
+  }
   const statusCode = err.statusCode || 500;
   const message = err.message || "Internal Server Error";
   
-  // console.log(err.stack);
- res.status(statusCode).json({
+   console.log(err.stack);
+  res.status(statusCode).json({
   statusCode,
   success: false, 
   message
