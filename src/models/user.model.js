@@ -5,7 +5,7 @@ const bcrypt = require("bcrypt");
 
 const userSchema = new Schema(
     {
-        username: {
+        userName: {
             type: String,
             required: true,
             unique: true,
@@ -43,10 +43,6 @@ const userSchema = new Schema(
             type: String,
             required: [true, 'Password is required']
         },
-        refreshToken: {
-            type: String
-        }
-
     },
     {
         timestamps: true
