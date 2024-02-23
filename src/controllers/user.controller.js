@@ -3,6 +3,7 @@ const {ApiResponse}=require("../utils/apiResponse")
 const {ApiError}=require("../utils/apiError")
 const {User}=require("../models/user.model")
 const {uploadOnCloudinary,deleteImageFromCloudinary}=require("../utils/cloudinary.js")
+const fs=require("fs");
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
  
@@ -35,8 +36,15 @@ const registerUser=asyncHandler(async(req,res,next)=>{
    } 
 
    const existedUser=await User.findOne({$or:[{userName},{ email}]});
-
-   if(existedUser){ 
+  
+   if(existedUser){
+    
+      if(req.files?.avatar?.[0]){
+        fs.unlinkSync(req.files.avatar[0].path);
+      }
+      if(req.files?.coverImage?.[0]){
+        fs.unlinkSync(req.files.coverImage[0].path)
+      }
       return next(new ApiError(409, "User already exists."));
    }
     // console.log(req.files.avtar[0]);
@@ -146,7 +154,14 @@ const logoutUser = asyncHandler(async(req, res) => {
 const changeCurrentPassword=asyncHandler(async(req,res,next)=>{
 
     const{oldPassword,newPassword}=req.body;
-    let user=req.user;
+    if(!oldPassword?.trim() || !newPassword?.trim()){
+      return next(new ApiError(400,"oldPassword and newPassword is required.."));
+    }
+    if(newPassword.length<6){
+        return next(new ApiError(400,"new Password lenght should be greater than 6."))
+    }
+    
+    let user=await User.findById({_id:req.user?._id});
     const isPasswordCorrect=await user.isPasswordCorrect(oldPassword);
 
     if(!isPasswordCorrect){
