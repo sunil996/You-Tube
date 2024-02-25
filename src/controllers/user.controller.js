@@ -2,73 +2,123 @@ const {asyncHandler}=require("../utils/asyncHandler")
 const {ApiResponse}=require("../utils/apiResponse")
 const {ApiError}=require("../utils/apiError")
 const {User}=require("../models/user.model")
-const {uploadOnCloudinary,deleteImageFromCloudinary}=require("../utils/cloudinary.js")
+const {uploadOnCloudinary,deleteMediaFileFromCloudinary}=require("../utils/cloudinary.js")
+const { getPublicIdFromUrl }=require("../utils/utilFunctions.js")
 const fs=require("fs");
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
+const path = require('path');
  
 //Controllers for user
 
 const registerUser=asyncHandler(async(req,res,next)=>{
       
    let { userName,fullName,email,password } = req.body;
+   const avatarLocalPath=req.files?.avatar?.[0]?.path;
+   const coverImageLocalPath=req.files?.coverImage?.[0]?.path;
+
    fullName = fullName?.trim();
    email = email?.trim();
    userName = userName?.trim();
    password = password?.trim();
     
    if(!userName || !fullName || !email || !password){
+      
+      if(avatarLocalPath){
+        fs.unlinkSync(avatarLocalPath)
+     }
+     if(coverImageLocalPath){
+        fs.unlinkSync(coverImageLocalPath)
+     }
       return next(new ApiError(400, " Provide all the values for fields.."));
    }
    if(password.length<6 || password.length>20   ){
+
+      if(avatarLocalPath){
+        fs.unlinkSync(avatarLocalPath)
+    }
+    if(coverImageLocalPath){
+        fs.unlinkSync(coverImageLocalPath)
+    }
       return next(new ApiError(400, "Password should be between 6 and 20 characters."));
    } 
    if (!emailRegex.test(email)) {
+      if(avatarLocalPath){
+        fs.unlinkSync(avatarLocalPath)
+    }
+    if(coverImageLocalPath){
+        fs.unlinkSync(coverImageLocalPath)
+    }
       return next(new ApiError(400, "Invalid email format."));
   }
-
-  if (!emailRegex.test(email)) {
-   return next(new ApiError(400, "Invalid email format."));
-   }
+ 
 
    if (!email.includes("@gmail.com")) {
+
+      if(avatarLocalPath){
+          fs.unlinkSync(avatarLocalPath)
+       }
+      if(coverImageLocalPath){
+          fs.unlinkSync(coverImageLocalPath)
+      }
    return next(new ApiError(400, "The email must be from Gmail domain (@gmail.com)."));
    } 
 
    const existedUser=await User.findOne({$or:[{userName},{ email}]});
-  
+
    if(existedUser){
     
-      if(req.files?.avatar?.[0]){
-        fs.unlinkSync(req.files.avatar[0].path);
+      if(avatarLocalPath){
+        fs.unlinkSync(avatarLocalPath);
       }
-      if(req.files?.coverImage?.[0]){
-        fs.unlinkSync(req.files.coverImage[0].path)
+      if(coverImageLocalPath){
+        fs.unlinkSync(coverImageLocalPath)
       }
       return next(new ApiError(409, "User already exists."));
    }
-    // console.log(req.files.avtar[0]);
-    const avatarLocalPath=req.files?.avatar?.[0]?.path;
-    const coverImageLocalPath=req.files?.coverImage?.[0]?.path;
+
     
     if(!avatarLocalPath){
+
+      if(coverImageLocalPath){
+        fs.unlinkSync(coverImageLocalPath)
+      }
       return next(new ApiError(400,"Avatar file is required..")) 
     }
 
+    if(req.files?.avatar?.[0].mimetype.includes("video")){
+       
+      fs.unlinkSync(avatarLocalPath);
+
+      if(coverImageLocalPath){
+        fs.unlinkSync(coverImageLocalPath)
+      }
+      return next(new ApiError(400,"Please provide only an image file for avatar field.."))
+    } 
+    
+
+    if(coverImageLocalPath){
+       if(req.files?.coverImage?.[0]?.mimetype.includes("video")){
+
+        fs.unlinkSync(avatarLocalPath)
+        fs.unlinkSync(coverImageLocalPath);
+        return next(new ApiError(400,"Please provide only an image file for coverImage field.."))
+       }
+    }
+    
     const avatar=await uploadOnCloudinary(avatarLocalPath,"avatars");
+
     if (!avatar) {
       return next(new ApiError(400, "Error uploading avatar file."));
       }
-    
+      
       let coverImage; 
       if(coverImageLocalPath){
-         coverImage=await uploadOnCloudinary(coverImageLocalPath,coverImages);
+         coverImage=await uploadOnCloudinary(coverImageLocalPath,"coverImages");
          if (!coverImage) {
             return next(new ApiError(400, "Error uploading cover image file."));
-        }
+        } 
       }
-
-
+      
       const user= await User.create({
       userName:userName.toLowerCase(),
       fullName,
@@ -81,6 +131,7 @@ const registerUser=asyncHandler(async(req,res,next)=>{
    if (!user) {
       return next(new ApiError(500, "Failed to register the user."));
    }
+
    user.password = undefined;
    user.createdAt = undefined;
    user.updatedAt = undefined;
@@ -92,10 +143,7 @@ const registerUser=asyncHandler(async(req,res,next)=>{
 const loginUser = asyncHandler(async (req, res,next) =>{
 
    const {email, username, password} = req.body
-   console.log(email);
-   console.log(username);
-   console.log(password);
- 
+  
    if (!username && !email) {
      return next( new ApiError(400, "username or email is required"));
    }
@@ -169,22 +217,30 @@ const changeCurrentPassword=asyncHandler(async(req,res,next)=>{
     }
     user.password=newPassword;
     await user.save({validateBeforeSave:false});
-    return res.status(200).json(new ApiResponse(200,{},"Password Changed Successfully."))
+    return res.status(200).json(new ApiResponse(200,"Password Changed Successfully.",{}))
 
 });
 
 //get Current user details
 const getCurrentUser= (req,res)=>{
-   return res.status(200).json(200,req.user,"current user fetched Successfully");
+   return res.status(200).json(new ApiResponse(200,"current user fetched successfully",req.user))
 };
 
 //update useremail
-const updateAccountDetails = asyncHandler(async(req, res,next) => {
+const updateEmail = asyncHandler(async(req, res,next) => {
    const {email} = req.body
 
-   if (!email) {
-       return next( new ApiError(400, "All fields are required"));
+   if (!email?.trim()) {
+       return next( new ApiError(400, "email is required"));
    }
+
+   if (!emailRegex.test(email)) {
+    return next(new ApiError(400, "Invalid email format."));
+    }
+
+    if (!email.includes("@gmail.com")) {
+    return next(new ApiError(400, "The email must be from Gmail domain (@gmail.com)."));
+    } 
 
    const user = await User.findByIdAndUpdate(
        req.user?._id,
@@ -197,22 +253,34 @@ const updateAccountDetails = asyncHandler(async(req, res,next) => {
 
    return res
    .status(200)
-   .json(new ApiResponse(200, user, "Account details updated successfully"))
+   .json(new ApiResponse(200,"Account details updated successfully", user))
 });
 
 const updateUserAvatar = asyncHandler(async (req, res, next) => {
    const avatarLocalPath = req.file?.path;
- 
-   if (!avatarLocalPath) {
+     if (!avatarLocalPath) {
      return next(new ApiError(400, "Avatar file is missing"));
    }
    
+   if(req.file?.mimetype.includes("video")){
+    
+    fs.unlinkSync(avatarLocalPath);
+    return next(new ApiError(400,"Please provide only an image file for the avatar field."))
+   }
+
    const avatar = await uploadOnCloudinary(avatarLocalPath,"avatars");
  
    if (!avatar.url) {
-     return next(new ApiError(500, "Error while uploading the avatar"));
+     return next(new ApiError(500, "Failed to upload the avatar image. Please try again later."));
    }
-   await deleteImageFromCloudinary(req.user?.avatar,"avatars");
+   
+   const publicId=getPublicIdFromUrl(req.user?.avatar)
+   const deleteResult=await deleteMediaFileFromCloudinary(publicId);
+   
+   if (!deleteResult || deleteResult.result != 'ok') {
+    return next(new ApiError(500, "Failed to remove avatar image. Please try again later"));
+  }
+ 
    const user = await User.findByIdAndUpdate(
      req.user?._id,
      {
@@ -224,30 +292,47 @@ const updateUserAvatar = asyncHandler(async (req, res, next) => {
    return res.status(200).json(
      new ApiResponse(
        200,
-       {user},
-       "Avatar image updated successfully"
+       "Avatar image updated successfully",
+       {user}
      )
    );
  });
  
 
 const updateUserCoverImage = asyncHandler(async(req, res,next) => {
+
    const coverImageLocalPath = req.file?.path
 
    if (!coverImageLocalPath) {
       return next(new ApiError(400, "Cover image file is missing"))
    }
 
+   if(req.file?.mimetype.includes("video")){
+    
+    fs.unlinkSync(coverImageLocalPath);
+    return next(new ApiError(400,"Please provide only an image file for coverImage field.."))
+   }
+
    const coverImage = await uploadOnCloudinary(coverImageLocalPath,"coverImages")
 
    if (!coverImage?.url) {
-       return next(new ApiError(500, "Eror while urploading on avatar"))
+       return next(new ApiError(500, "Failde to upload the coverImage.Please try again later."))
    }
-   await deleteImageFromCloudinary(req.user?.coverImage,"coverImages");
+   if(req.user?.coverImage?.trim()){
+    
+    const coverImagePublicId= getPublicIdFromUrl(req.user?.coverImage)
+    const deleteResult=await deleteMediaFileFromCloudinary(coverImagePublicId)
+
+    if(!deleteResult && deleteResult !='ok'){
+      return next(new ApiError(500,"Failed to remove coverImage from the cloudinary."))
+     }
+
+   }
+    
    const user = await User.findByIdAndUpdate(
        req.user?._id, 
        {
-           $set:{ coverImage: coverImage.url  }
+           $set:{ coverImage: coverImage?.url  }
        },
        {new: true}
    ).select("-password")
@@ -344,7 +429,7 @@ module.exports={
    getCurrentUser,
    changeCurrentPassword,
    getCurrentUser,
-   updateAccountDetails,
+   updateEmail,
    updateUserAvatar,
    updateUserCoverImage,
    getUserChannelProfile
