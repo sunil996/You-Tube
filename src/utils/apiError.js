@@ -9,6 +9,8 @@ class ApiError extends Error {
         this.success = false;
 
     }
+  
+
 }
 
 module.exports={ApiError};
