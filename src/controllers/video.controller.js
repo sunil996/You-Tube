@@ -93,18 +93,19 @@ const publishAVideo = asyncHandler(async (req, res,next) => {
 })
 
 const getVideoById = asyncHandler(async (req, res,next) => {
+
     const { videoId } = req.params
-    //TODO: get video by id
     if(!videoId?.trim()){
         return next(new ApiError(400,"did not get video id."))
     }
 
-    const video=await Video.findById({_id:videoId});
-
-    if(!video){
+    const foundVideo=await Video.findById({_id:videoId});
+    foundVideo.views=foundVideo.views+1;
+    if(!foundVideo){
         return next(new ApiError(404,"could not find the video for particular id."))
     }
-    return res.status(200).json(new ApiResponse(200,"video fetched successfully.",video))
+    const updatedVideo=await foundVideo.save();
+    return res.status(200).json(new ApiResponse(200,"video fetched successfully.",updatedVideo))
 
 })
 
