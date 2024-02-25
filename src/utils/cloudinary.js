@@ -1,7 +1,7 @@
 const cloudinary = require("cloudinary").v2;
 const fs=require("fs");
-const { nextTick } = require("process");
-const { ApiError } = require("./apiError");
+const { nextTick } = require("process"); 
+ 
 require('dotenv').config();
 
 cloudinary.config({ 
@@ -14,10 +14,10 @@ const uploadOnCloudinary = async (localFilePath,locationFolder) => {
     try {
         if (!localFilePath) return null
            const response = await cloudinary.uploader.upload(localFilePath, {
-           resource_type: "auto",
+           resource_type:"auto",
            folder:locationFolder
         })
-         fs.unlinkSync(localFilePath)
+        fs.unlinkSync(localFilePath)
         return response;
 
     } catch (error) {
@@ -25,15 +25,19 @@ const uploadOnCloudinary = async (localFilePath,locationFolder) => {
         return null;
     }
 }
-
-const deleteImageFromCloudinary=async(publicId,folder)=>{
-
-    try {
-       await cloudinary.uploader.destroy(publicId,{folder});
-    } catch (error) {
-       return res.status(error.statusCode || 500).json({ error: error.message });
-    }
+ 
+  
+async function deleteMediaFileFromCloudinary(publicId, resourceType="image") {
+  try {
+      const result = await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
+      return result;
+  } catch (error) {
+      console.log("in error part");
+      console.log(error);
+      return null;
+  }
 }
+ 
 
-module.exports={uploadOnCloudinary,deleteImageFromCloudinary}
+module.exports={uploadOnCloudinary,deleteMediaFileFromCloudinary}
 
