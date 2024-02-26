@@ -17,12 +17,13 @@ app.use(cookieParser())
  // import routes
  const userRouter=require("./routes/user.routes.js");
  const videoRouter=require("./routes/video.routes.js");
+ const tweetRouter=require("./routes/tweet.routes.js");
 
-app.use("/api/v1/user", userRouter)
+app.use("/api/v1/users", userRouter)
 app.use("/api/v1/videos",videoRouter)
-
+app.use("/api/v1/tweets",tweetRouter)
 app.use(errorHandler); 
 
-module.exports={app};
+module.exports=app;
  
  
