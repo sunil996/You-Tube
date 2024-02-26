@@ -31,7 +31,7 @@ const registerUser=asyncHandler(async(req,res,next)=>{
      }
       return next(new ApiError(400, " Provide all the values for fields.."));
    }
-   if(password.length<6 || password.length>20   ){
+   if(password.trim().length<6 || password.trim().length>20   ){
 
       if(avatarLocalPath){
         fs.unlinkSync(avatarLocalPath)
@@ -63,7 +63,7 @@ const registerUser=asyncHandler(async(req,res,next)=>{
    return next(new ApiError(400, "The email must be from Gmail domain (@gmail.com)."));
    } 
 
-   const existedUser=await User.findOne({$or:[{userName},{ email}]});
+   const existedUser=await User.findOne({$or:[{userName:userName?.trim()},{ email:email?.trim()}]});
 
    if(existedUser){
     
@@ -121,9 +121,9 @@ const registerUser=asyncHandler(async(req,res,next)=>{
       
       const user= await User.create({
       userName:userName.toLowerCase(),
-      fullName,
-      email,
-      password,
+      fullName:fullName?.trim(),
+      email:email?.trim(),
+      password:password?.trim(),
       avatar:avatar.url, 
       coverImage:coverImage?.url || ""
     })
@@ -144,12 +144,12 @@ const loginUser = asyncHandler(async (req, res,next) =>{
 
    const {email, username, password} = req.body
   
-   if (!username && !email) {
+   if (!username?.trim() && !email?.trim()) {
      return next( new ApiError(400, "username or email is required"));
    }
  
     const user = await User.findOne({
-        $or: [{userName:username}, {email:email}]  
+        $or: [{userName:username?.trim()}, {email:email?.trim()}]  
    })
  // const user=await User.findOne({userName:username})
    console.log(user);//null value will return if the user does not exist.
@@ -205,17 +205,17 @@ const changeCurrentPassword=asyncHandler(async(req,res,next)=>{
     if(!oldPassword?.trim() || !newPassword?.trim()){
       return next(new ApiError(400,"oldPassword and newPassword is required.."));
     }
-    if(newPassword.length<6){
+    if(newPassword?.trim().length<6){
         return next(new ApiError(400,"new Password lenght should be greater than 6."))
     }
     
     let user=await User.findById({_id:req.user?._id});
-    const isPasswordCorrect=await user.isPasswordCorrect(oldPassword);
+    const isPasswordCorrect=await user.isPasswordCorrect(oldPassword?.trim());
 
     if(!isPasswordCorrect){
       return next(new ApiError(400,"Invalid old password"))
     }
-    user.password=newPassword;
+    user.password=newPassword?.trim();
     await user.save({validateBeforeSave:false});
     return res.status(200).json(new ApiResponse(200,"Password Changed Successfully.",{}))
 
@@ -245,7 +245,7 @@ const updateEmail = asyncHandler(async(req, res,next) => {
    const user = await User.findByIdAndUpdate(
        req.user?._id,
        {
-           $set:{email:email}
+           $set:{email:email?.trim()}
        },
        {new: true}
        
