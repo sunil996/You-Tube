@@ -22,6 +22,6 @@ router.route("/publishAVideo")
      
     router.route("/:videoId").get(getVideoById);
     router.route("/:videoId").delete(deleteVideo);
-    router.route("/:videoId").put(upload.single("thumbnail"),updateVideo);
+    router.route("/:videoId").patch(upload.single("thumbnail"),updateVideo);
     
 module.exports=router;
