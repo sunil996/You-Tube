@@ -1,4 +1,4 @@
-const {app} =require("./app.js"); 
+const app =require("./app.js"); 
 const {connectDB}=require("./db/connection.js");
 
 
