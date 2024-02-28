@@ -17,9 +17,9 @@ const getAllVideos = asyncHandler(async (req, res) => {
 const publishAVideo = asyncHandler(async (req, res,next) => {
 
     const { title, description} = req.body
-    const videoLocalPath= req.files.videoFile[0].path;
-    const thumbnailLocalPath=req.files.thumbnail[0].path;
-
+    const videoLocalPath= req.files?.videoFile?.[0]?.path;
+    const thumbnailLocalPath=req.files?.thumbnail?.[0]?.path;
+    
     if(!title?.trim() || !description?.trim())//if (!title || !description || !title.trim() || !description.trim())
     {
     
@@ -32,9 +32,9 @@ const publishAVideo = asyncHandler(async (req, res,next) => {
         
         return next(new ApiError(400,"title and Description are Required..."))
     }
-    
+   
     if(!videoLocalPath){
-
+       
         if(thumbnailLocalPath){
             fs.unlinkSync(thumbnailLocalPath);
         }
@@ -72,14 +72,14 @@ const publishAVideo = asyncHandler(async (req, res,next) => {
 
      const thumbnail=await uploadOnCloudinary(thumbnailLocalPath,"thumbnails");
      if(!thumbnail){
-        return next(500,"something went wrong while uploading thumbnail on cloudinary.")
+        return next(500,"something went wrong while uploading thumbnail on cloudinary.") 
      } 
     
      const  uploadVideo=await Video.create({
         videoFile:video.url,
         thumbnail:thumbnail.url,
-        title,
-        description,
+        title:title?.trim(),
+        description:description?.trim(),
         duration:video.duration,
         owner:req.user?._id
      })
@@ -109,11 +109,11 @@ const getVideoById = asyncHandler(async (req, res,next) => {
 
 })
 
-const updateVideo = asyncHandler(async (req, res) => {
+const updateVideo = asyncHandler(async (req, res,next) => {
     const { videoId } = req.params;
     const {title,description}=req.body;
     const thumbnailLocalPath=req.file?.path;
-    //TODO: update video details like title, description, thumbnail
+    
     if(!videoId?.trim()){
         
         if(thumbnailLocalPath){
@@ -123,12 +123,21 @@ const updateVideo = asyncHandler(async (req, res) => {
     }
    
     const video=await Video.findById({_id:videoId});
+    
+    if(!video){
+        return next(new ApiError(404,"video not found."));
+    }
+
+    if (video.owner.toString() !== req.user._id.toString()) {
+        return next(new ApiError(403, "Forbidden: You do not have permission to update this video."));
+    }
+
 
     if(title?.trim()){
-       video.title=title;
+       video.title=title?.trim();
     }
     if(description?.trim()){
-        video.description=description;
+        video.description=description?.trim();
     }
 
     let thumbnail;
@@ -164,23 +173,33 @@ const deleteVideo = asyncHandler(async (req, res,next) => {
     
         let { videoId } = req.params;
         videoId = videoId?.trim();
-          
+         
         if (!videoId) {
             return next(new ApiError(400, "Did not get a valid video id."));
         }
+
+        const video = await Video.findById({ _id: videoId });
         
-      const video = await Video.findByIdAndDelete({ _id: videoId });
-
-       if (!video) {
-             return next(new ApiError(404, "Failed to delete video."));
-       }
-    
-      const videoPublicId = getPublicIdFromUrl(video.videoFile); 
-      const deletedVideo = await deleteMediaFileFromCloudinary(videoPublicId,"video");
-
-      if (!deletedVideo || deletedVideo.result != 'ok') {
-            return next(new ApiError(500, "Something went wrong while deleting video from Cloudinary."));
+        if (!video) {
+                return next(new ApiError(404, "video not found.!"));
         }
+     
+        if (video.owner.toString() !== req.user._id.toString()) {
+            return next(new ApiError(403, "Forbidden: You do not have permission to delete this video."));
+        }
+       
+        const  deletedVideo  =await Video.deleteOne({_id:videoId});
+
+        if(deletedVideo.deletedCount !== 1){
+            return next(new ApiError(500,"Failed to delete the video.try again later."));
+        }
+
+        const videoPublicId = getPublicIdFromUrl(video.videoFile); 
+        const deletedVideoFromCloudinary  = await deleteMediaFileFromCloudinary(videoPublicId,"video");
+
+        if (!deletedVideoFromCloudinary || deletedVideoFromCloudinary.result != 'ok') {
+                return next(new ApiError(500, "Something went wrong while deleting video from Cloudinary."));
+            }
         
        const thumbnailPublicId = getPublicIdFromUrl(video.thumbnail);
        const deletedThumbnail = await deleteMediaFileFromCloudinary(thumbnailPublicId,"image");

@@ -13,6 +13,6 @@ const subscriptionSchema = new Schema({
     }
 }, {timestamps: true});
  
- const Video =mongoose.model("Subscription", subscriptionSchema)
- module.exports={ Video }
+ const Subscription =mongoose.model("Subscription", subscriptionSchema)
+ module.exports={ Subscription }
  

@@ -23,7 +23,7 @@ const createTweet = asyncHandler(async (req, res,next) => {
 const getUserTweets = asyncHandler(async (req, res,next) => {
     
     const {userId} = req.params;
-     console.log(userId)
+
     if(!userId?.trim()){
         return next(new ApiError(400,"User ID is required"))
     }
@@ -32,6 +32,7 @@ const getUserTweets = asyncHandler(async (req, res,next) => {
     }
 
     const tweets=await Tweet.find({owner:userId});
+    
     if (!tweets || tweets.length === 0) {
         return res.status(404).json(new ApiResponse(404, "No tweets found for the user.", []));
     }
@@ -67,6 +68,7 @@ const updateTweet = asyncHandler(async (req, res,next) => {
  
     tweet.content=content?.trim();
     const updatedTweet=await tweet.save();
+
     if(!updatedTweet){
         return next(new ApiError(500,"failded to updated the tweet.!"))
     }
@@ -75,29 +77,64 @@ const updateTweet = asyncHandler(async (req, res,next) => {
 
 })
 
+
+// const deleteTweet = asyncHandler(async (req, res,next) => {
+
+//     const {tweetId}=req.params;
+        
+//     if(!tweetId?.trim()){
+//         return next(new ApiError(400, "Did not get a valid twitt id."));
+//     }
+    
+//     if (!mongoose.Types.ObjectId.isValid(tweetId)) {
+//         return next(new ApiError(400, 'Invalid tweet id'));
+//     }
+//     console.log(req.user._id)
+//     const tweet = await Tweet.findById({ _id: tweetId }); 
+//     if (!tweet) {
+//         return next(new ApiError(404, "tweet not found.!"));
+//     }
+  
+//      if (tweet.owner.toString() != req.user._id.toString()) {
+//         return next(new ApiError(403, "Forbidden: You do not have permission to delete this tweet."));
+//     }
+      
+//     const deletedTweet=await Tweet.deleteOne({ _id: tweetId });
+//     if(deletedTweet.deletedCount !== 1){
+//         return next(new ApiError(500,"Failed to delete the tweet.try again later."));
+//     }
+
+//     res.status(200).json(new ApiResponse(200,"tweet deleted successfully.",deletedTweet))
+// })
+
 const deleteTweet = asyncHandler(async (req, res,next) => {
 
     const {tweetId}=req.params;
+        
     if(!tweetId?.trim()){
         return next(new ApiError(400, "Did not get a valid twitt id."));
     }
+    
+    if (!mongoose.Types.ObjectId.isValid(tweetId)) {
+        return next(new ApiError(400, 'Invalid tweet id'));
+    }
+    console.log(req.user._id)
+
+    const hasUserPermission = await Tweet.findOne({ _id: tweetId,owner:req.user?._id }); 
+
+    if (!hasUserPermission) {
+        return next(new ApiError(403, "Permission denied or tweet not found"));
+    }
    
-    const tweet = await Tweet.findById({ _id: tweetId });
-    if (!tweet) {
-        return next(new ApiError(404, "tweet not found.!"));
+    const deletedTweet=await Tweet.deleteOne({ _id: tweetId });
+
+    if(deletedTweet.deletedCount !== 1){
+        return next(new ApiError(500,"Failed to delete the tweet.try again later."));
     }
 
-     if (tweet.owner.toString() !== req.user._id.toString()) {
-        return next(new ApiError(403, "Forbidden: You do not have permission to delete this tweet."));
-    }
-
-   const deletedTweet=await tweet.delete();
-   if(!deletedTweet){
-    return next(new ApiError(500,"Failed to delete the tweet.try again later."));
-   }
-
-  res.status(200).json(new ApiResponse(200,"tweet deleted successfully.",nulll))
+    res.status(200).json(new ApiResponse(200,"tweet deleted successfully.",deletedTweet))
 })
+
 
 module.exports= {
     createTweet,

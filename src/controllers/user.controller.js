@@ -151,8 +151,7 @@ const loginUser = asyncHandler(async (req, res,next) =>{
     const user = await User.findOne({
         $or: [{userName:username?.trim()}, {email:email?.trim()}]  
    })
- // const user=await User.findOne({userName:username})
-   console.log(user);//null value will return if the user does not exist.
+  
    if (!user) { 
        return next( new ApiError(404, "User does not exist"));
    }
@@ -172,17 +171,17 @@ const loginUser = asyncHandler(async (req, res,next) =>{
        httpOnly: true,
        secure: true
    }
-
-   return res
-   .status(200)
-   .cookie("accessToken", accessToken, options)
-   .json(
-       new ApiResponse(
-         200, 
-         "User logged In Successfully",
-         {user,accessToken}
-       )
-   )
+  res.status(201).json(new ApiResponse(200,"successful login",accessToken))
+  //  return res
+  //  .status(200)
+  //  .cookie("accessToken", accessToken, options)
+  //  .json(
+  //      new ApiResponse(
+  //        200, 
+  //        "User logged In Successfully",
+  //        {user,accessToken}
+  //      )
+  //  )
 });
 
 //logOut User Controller
