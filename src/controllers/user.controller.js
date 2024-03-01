@@ -8,7 +8,7 @@ const fs=require("fs");
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const path = require('path');
  
-//Controllers for user
+ 
 
 const registerUser=asyncHandler(async(req,res,next)=>{
       
@@ -184,7 +184,7 @@ const loginUser = asyncHandler(async (req, res,next) =>{
   //  )
 });
 
-//logOut User Controller
+ 
 const logoutUser = asyncHandler(async(req, res) => {
 
    const options = {
@@ -220,12 +220,12 @@ const changeCurrentPassword=asyncHandler(async(req,res,next)=>{
 
 });
 
-//get Current user details
+ 
 const getCurrentUser= (req,res)=>{
    return res.status(200).json(new ApiResponse(200,"current user fetched successfully",req.user))
 };
 
-//update useremail
+
 const updateEmail = asyncHandler(async(req, res,next) => {
    const {email} = req.body
 
@@ -254,6 +254,7 @@ const updateEmail = asyncHandler(async(req, res,next) => {
    .status(200)
    .json(new ApiResponse(200,"Account details updated successfully", user))
 });
+
 
 const updateUserAvatar = asyncHandler(async (req, res, next) => {
    const avatarLocalPath = req.file?.path;
@@ -343,9 +344,10 @@ const updateUserCoverImage = asyncHandler(async(req, res,next) => {
    )
 });
 
-//11:27 
+ 
 
 const getUserChannelProfile = asyncHandler(async(req, res,next) => {
+  
    const {username} = req.params
 
    if (!username?.trim()) {
