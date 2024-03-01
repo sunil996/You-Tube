@@ -15,20 +15,21 @@ app.use(express.static("public"))
 app.use(cookieParser())
 
  // import routes
- const userRoutes=require("./routes/user.routes.js");
- const videoRoutes=require("./routes/video.routes.js");
- const tweetRoutes=require("./routes/tweet.routes.js");
- const subscriptionRoutes=require("./routes/subscriptio.routes.js")
- const playlistRoutes=require("./routes/playlist.routes.js")
- const commentRoutes=require("./routes/comment.routes.js")
+ const userRouter=require("./routes/user.routes.js");
+ const videoRouter=require("./routes/video.routes.js");
+ const tweetRouter=require("./routes/tweet.routes.js");
+ const subscriptionRouter=require("./routes/subscriptio.routes.js")
+ const playlistRouter=require("./routes/playlist.routes.js")
+ const commentRouter=require("./routes/comment.routes.js")
+ const likeRouter = require("./routes/liks.routes.js");
 
-app.use("/api/v1/users", userRoutes)
-app.use("/api/v1/videos",videoRoutes)
-app.use("/api/v1/tweets",tweetRoutes)
-app.use("/api/v1/subscriptions",subscriptionRoutes)
-app.use("/api/v1/playlists",playlistRoutes)
-app.use("/api/v1/comments",commentRoutes);
-
+app.use("/api/v1/users", userRouter)
+app.use("/api/v1/videos",videoRouter)
+app.use("/api/v1/tweets",tweetRouter)
+app.use("/api/v1/subscriptions",subscriptionRouter)
+app.use("/api/v1/playlists",playlistRouter)
+app.use("/api/v1/comments",commentRouter);
+app.use("/api/v1/likes",likeRouter)
 app.use(errorHandler); 
 
 module.exports=app;
