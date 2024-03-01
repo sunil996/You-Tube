@@ -215,4 +215,6 @@ const updatePlaylist = asyncHandler(async (req, res,next) => {
     const updatedPlaylist = await playlist.save();
     res.status(200).json(new ApiResponse(200,'Playlist updated successfully', updatedPlaylist));
 })
+
+
 module.exports = { createPlaylist,getUserPlaylists,getPlaylistById,addVideoToPlaylist ,removeVideoFromPlaylist,deletePlaylist,updatePlaylist};
