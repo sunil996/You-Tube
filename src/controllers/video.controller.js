@@ -9,9 +9,61 @@ const { uploadOnCloudinary,deleteMediaFileFromCloudinary } = require("../utils/c
 const {getPublicIdFromUrl}=require("../utils/utilFunctions.js")
 const fs=require("fs");
 
+/*
 const getAllVideos = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
-    //TODO: get all videos based on query, sort, pagination
+    
+    const getAllVideos = asyncHandler(async (req, res) => {
+         
+        const { page = 1, limit = 10, sortBy } = req.query;
+          
+          const pipeline = [];
+
+    switch (sortBy) {
+        case 'popular':
+            pipeline.push({ $sort: { views: -1 } });
+            break;
+        case 'oldest':
+            pipeline.push({ $sort: { createdAt: 1 } });
+            break;
+        case 'latest':
+        default:
+            pipeline.push({ $sort: { createdAt: -1 } });
+            break;
+    }
+
+    pipeline.push({ $skip: (page - 1) * parseInt(limit, 10) });
+    pipeline.push({ $limit: parseInt(limit, 10) });
+
+    const videos = await Video.aggregate(pipeline);
+        res.status(200).json(new ApiResponse(200,"videos fetched successfully.",videos));
+    });
+    
+
+})
+*/
+const getAllVideos = asyncHandler(async (req, res) => {
+     
+    const { page = 1, limit = 10, sortBy } = req.query;
+    let sortCriteria = {};
+      
+    switch (sortBy) {
+        case 'popular':
+            sortCriteria = { views: -1 };  
+            break;
+        case 'oldest':
+            sortCriteria = { createdAt: 1 };  
+            break;
+        case 'latest':
+            sortCriteria = { createdAt: -1 }; 
+            break;
+        default:
+            sortCriteria = { createdAt: -1 };  
+            break;
+    }
+ 
+    const videos = await Video.find({}).sort(sortCriteria).skip((page - 1) * limit).limit(limit);
+
+    res.status(200).json(new ApiResponse(200,"videos fetched successfully.",videos));
 })
 
 const publishAVideo = asyncHandler(async (req, res,next) => {
@@ -95,16 +147,26 @@ const publishAVideo = asyncHandler(async (req, res,next) => {
 const getVideoById = asyncHandler(async (req, res,next) => {
 
     const { videoId } = req.params
+
     if(!videoId?.trim()){
         return next(new ApiError(400,"did not get video id."))
     }
-
-    const foundVideo=await Video.findById({_id:videoId});
-    foundVideo.views=foundVideo.views+1;
-    if(!foundVideo){
-        return next(new ApiError(404,"could not find the video for particular id."))
+    
+    if (mongoose.isValidObjectId(videoId) === false) {
+        return next( new ApiError(400,"video id is not valid"))
     }
-    const updatedVideo=await foundVideo.save();
+
+    const foundVideo=await Video.findById( videoId );
+    
+    if(!foundVideo){
+        return next(new ApiError(404,"video not found !"))
+    }
+
+    foundVideo.views=foundVideo.views+1;
+    
+   const updatedUser= await User.findByIdAndUpdate(req.user?._id,{$addToSet:{watchHistory:foundVideo._id}},{new:true})
+   const updatedVideo=await foundVideo.save();
+   
     return res.status(200).json(new ApiResponse(200,"video fetched successfully.",updatedVideo))
 
 })
@@ -178,7 +240,7 @@ const deleteVideo = asyncHandler(async (req, res,next) => {
             return next(new ApiError(400, "Did not get a valid video id."));
         }
 
-        const video = await Video.findById({ _id: videoId });
+        const video = await Video.findById(videoId);
         
         if (!video) {
                 return next(new ApiError(404, "video not found.!"));
