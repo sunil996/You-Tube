@@ -95,9 +95,12 @@ const getVideoComments = asyncHandler(async (req, res, next) => {
                     _id: 1,
                     content: 1,
                     createdAt: 1,
-                    'user._id': 1,
-                    'user.userName': 1,
-                    'user.avatar': 1,
+                    user:{
+                        _id:1,
+                        userName:1,
+                        avatar:1
+                    }
+                     
                 }, 
             }
         ]);
