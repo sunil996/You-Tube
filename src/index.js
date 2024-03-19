@@ -1,5 +1,5 @@
 const app =require("./app.js"); 
-const {connectDB}=require("./db/connection.js");
+const connectDB=require("./db/connection.js");
 
 
 connectDB()
