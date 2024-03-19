@@ -12,7 +12,6 @@ Access Control: Ensured appropriate access control where only the owner of a vid
 Technologies Used
 Backend: Node.js, Express
 Database: MongoDB
-Frontend: (if applicable)
 Cloud Storage: Integrated Cloudinary for efficient storage of profile images and videos.
 Getting Started
 To get started with this project, follow these steps:
