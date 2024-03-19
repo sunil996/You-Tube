@@ -1,6 +1,6 @@
 const {Router}=require("express") ;
 const {verifyJWT}=require("../middlewares/auth.middleware")
-const {registerUser,loginUser,logoutUser,changeCurrentPassword,getCurrentUser,updateEmail,updateUserAvatar,updateUserCoverImage,getUserChannelProfile}=require("../controllers/user.controller.js");
+const {registerUser,loginUser,logoutUser,changeCurrentPassword,forgotPassword,resetPassword,getCurrentUser,getUserWatchHistory,updateEmail,updateUserAvatar,updateUserCoverImage,getUserChannelProfile}=require("../controllers/user.controller.js");
 const { upload } = require("../middlewares/multer.midleware.js");
 const router=Router();
 
@@ -28,5 +28,9 @@ router.route("/update-avatar").patch(verifyJWT, upload.single("avatar"), updateU
 router.route("/update-coverImage").patch(verifyJWT, upload.single("coverImage"), updateUserCoverImage)
 
 router.route("/channel/:username").get(verifyJWT, getUserChannelProfile)// next work-- add this in postman.
+router.route("/you/watchHistory").get(verifyJWT,getUserWatchHistory)
+
+router.route("/forgot-password").post(forgotPassword);
+router.route("/reset-password/:token").post(resetPassword);
 
 module.exports=router;
