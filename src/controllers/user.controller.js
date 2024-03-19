@@ -7,8 +7,10 @@ const { getPublicIdFromUrl }=require("../utils/utilFunctions.js")
 const fs=require("fs");
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const path = require('path');
- 
- 
+const jwt = require("jsonwebtoken");
+const transporter=require("../utils/mailer.js") 
+const { pipeline } = require("stream")
+const { default: mongoose } = require("mongoose")
 
 const registerUser=asyncHandler(async(req,res,next)=>{
       
@@ -220,6 +222,68 @@ const changeCurrentPassword=asyncHandler(async(req,res,next)=>{
 
 });
 
+const forgotPassword=asyncHandler(async(req,res,next)=>{
+    
+     const { email } = req.body;
+    
+     if(!email?.trim()){
+      return next(new ApiError(400,"email is required !"))
+     }  
+
+     const user = await User.findOne({email:email?.trim()});
+     
+     if(!user) {
+        return next(new ApiError(404,"email is not registred !"))
+     }
+ 
+     const resetToken=  jwt.sign({userId:user?._id},process.env.RESET_TOKEN_SECRET,{expiresIn:process.env.RESET_TOKEN_SECRET_EXPIRY}) ;
+     console.log(resetToken)
+     const resetLink=`http://localhost:${process.env.PORT}/api/v1/users/reset-password/${resetToken}`;
+     console.log(resetLink)
+
+     const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: user?.email,
+      subject: "Password Reset Request",
+      html: `Click on this link <a href=${resetLink}>${resetLink}</a> to reset your password.`,
+    };
+     
+    const sendMailToUser=await transporter.sendMail(mailOptions);
+     
+  res.status(200).json(new ApiResponse(200,"Reset email sent successfully",null))
+
+});
+
+
+const resetPassword = asyncHandler(async (req, res, next) => {
+
+    let { token } = req.params;
+    
+    const { newPassword } = req.body;
+   
+    if(!token?.trim()){
+      return next(new ApiError(400,"Token is missing."));
+    }
+     
+    const decodedToken = jwt.verify(token, process.env.RESET_TOKEN_SECRET);
+     
+    const user = await User.findById(decodedToken.userId);
+   
+    if (!user) {
+      return next(new ApiError(400, "Invalid token"));
+    }
+    
+    if(!newPassword?.trim() || newPassword.trim().length<6){
+       return next(new ApiError(400,"Password is missing or password length should be at least 6 characters."))
+    }
+ 
+    user.password = newPassword?.trim();
+    await user.save();
+
+    res.status(200).json(new ApiResponse(200, "Password reset successfully", null));
+   
+});
+
  
 const getCurrentUser= (req,res)=>{
    return res.status(200).json(new ApiResponse(200,"current user fetched successfully",req.user))
@@ -423,6 +487,150 @@ const getUserChannelProfile = asyncHandler(async(req, res,next) => {
 })
 
 
+// const getUserWatchHistory=asyncHandler(async(req,res,next)=>{
+
+//   const user = await User.aggregate([
+//     {
+//         $match: {
+//             _id: new mongoose.Types.ObjectId(req.user._id)
+//         }
+//     }, 
+//     {
+//         $lookup: {
+//             from: "videos",
+//             localField: "watchHistory",
+//             foreignField: "_id",
+//             as: "watchHistory",
+//             pipeline: [
+//                 {
+//                     $lookup: {
+//                         from: "users",
+//                         localField: "owner",
+//                         foreignField: "_id",
+//                         as: "owner",
+//                         pipeline: [
+//                             {
+//                                 $project: {
+//                                     fullName: 1,
+//                                     username: 1,
+//                                     avatar: 1
+//                                 }
+//                             }
+//                         ]
+//                     }
+//                 },
+//                 {
+//                     $addFields:{
+//                         owner:{
+//                             $first: "$owner"
+//                         }
+//                     }
+//                 }
+//             ]
+//         }
+//     }
+// ])
+//   res.status(200).json(user);
+// })
+  const getUserWatchHistory=asyncHandler(async(req,res,next)=>{
+
+  const user = await User.aggregate([
+    {
+        $match: {
+            _id: new mongoose.Types.ObjectId(req.user._id)
+        }
+    },
+    {
+      $lookup: {
+        from: 'videos',
+        localField: 'watchHistory',
+        foreignField: '_id',
+        as: 'watchedVideos',
+      },
+    },
+  
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'watchedVideos.owner',
+        foreignField: '_id',
+        as: 'video-owner-details',
+      },
+    },
+   {$unwind:"$video-owner-details"},
+    {
+      $project: {
+        _id: 1,
+        userName: 1,
+        email: 1,
+        fullName: 1,
+        avatar: 1,
+        coverImage: 1,
+        'watchedVideos._id': 1,
+        'watchedVideos.videoFile': 1,
+        'watchedVideos.thumbnail': 1,
+        'watchedVideos.title': 1,
+        'watchedVideos.description': 1,
+        'watchedVideos.duration': 1,
+        'watchedVideos.views': 1,
+        'watchedVideos.isPublished': 1,
+        'watchedVideos.owner':{
+          'video-owner-details._id':'$video-owner-details._id',
+          'video-owner-details.fullName': "$video-owner-details.fullName",
+          'video-owner-details.avatar': "$video-owner-details.avatar",
+        }
+      
+      },
+    },
+])
+  res.status(200).json(new ApiResponse(200,"ftched successfully.",user));
+})
+
+// const getUserWatchHistory=asyncHandler(async(req,res,next)=>{
+
+//   const pipeLine=[
+//     {
+//       '$match': {
+//         '_id': new mongoose.Types.ObjectId(req.user?._id)
+//       }
+//     }, {
+//       '$lookup': {
+//         'from': 'videos', 
+//         'localField': 'watchHistory', 
+//         'foreignField': '_id', 
+//         'as': 'watchedVideos'
+//       }
+//     }
+//     , {
+//       '$project': {
+//         '_id': 1, 
+//         'userName': 1, 
+//         'email': 1, 
+//         'fullName': 1, 
+//         'avatar': 1, 
+//         'coverImage': 1, 
+//         'watchedVideos': {
+//           '_id': 1, 
+//           'videoFile': 1, 
+//           'thumbnail': 1, 
+//           'title': 1, 
+//           'description': 1, 
+//           'duration': 1, 
+//           'views': 1, 
+//           'isPublished': 1, 
+//           'owner': 1, 
+//           'createdAt': 1, 
+//           'updatedAt': 1
+//         }, 
+//         'createdAt': 1, 
+//         'updatedAt': 1
+//       }
+//     }
+//   ]
+//   const user=await User.aggregate(pipeLine)
+//   res.status(200).json(user);
+// })
+
 module.exports={
    registerUser,
    loginUser,
@@ -433,6 +641,8 @@ module.exports={
    updateEmail,
    updateUserAvatar,
    updateUserCoverImage,
-   getUserChannelProfile
-
+   getUserChannelProfile,
+   forgotPassword,
+   resetPassword,
+   getUserWatchHistory
 }
